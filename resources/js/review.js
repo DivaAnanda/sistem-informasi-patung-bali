@@ -1,4 +1,5 @@
 const NOTES_DELAY_MS = 900;
+const RETRY_DELAY_MS = 4000;
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.content ?? '';
@@ -12,14 +13,31 @@ function setPressed(button, pressed) {
     button.setAttribute('aria-pressed', pressed ? 'true' : 'false');
 }
 
+function isRetryable(status) {
+    return status === null || status === 429 || status >= 500;
+}
+
 function createSaver(panel, onSaved) {
     const status = panel.querySelector('[data-review-status]');
     let inFlight = false;
     let queued = null;
+    let retryTimer = null;
+
+    function flush() {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+        if (inFlight || queued === null) {
+            return;
+        }
+        const payload = queued;
+        queued = null;
+        send(payload);
+    }
 
     async function send(payload) {
         inFlight = true;
         panel.setAttribute('aria-busy', 'true');
+        let failedStatus;
         try {
             const response = await fetch(panel.dataset.url, {
                 method: 'PUT',
@@ -27,34 +45,42 @@ function createSaver(panel, onSaved) {
                 headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrfToken() },
                 body: JSON.stringify(payload),
             });
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+            if (response.ok) {
+                const result = await response.json();
+                status.textContent = fill(panel.dataset.savedLabel, { TIME: result.saved_at });
+                onSaved(result);
+            } else {
+                failedStatus = response.status;
             }
-            const result = await response.json();
-            status.textContent = fill(panel.dataset.savedLabel, { TIME: result.saved_at });
-            onSaved(result);
         } catch {
+            failedStatus = null;
+        }
+        inFlight = false;
+        panel.removeAttribute('aria-busy');
+
+        if (failedStatus === undefined) {
+            flush();
+            return;
+        }
+        // A dropped connection must not lose the informant's click: keep the change (newer edits win) and retry.
+        if (isRetryable(failedStatus)) {
+            status.textContent = panel.dataset.retryLabel;
+            queued = { ...payload, ...queued };
+            retryTimer = setTimeout(flush, RETRY_DELAY_MS);
+        } else {
             status.textContent = panel.dataset.errorLabel;
-        } finally {
-            inFlight = false;
-            panel.removeAttribute('aria-busy');
-            if (queued) {
-                const next = queued;
-                queued = null;
-                send(next);
-            }
+            flush();
         }
     }
+
+    window.addEventListener('online', flush);
 
     // Saves run one at a time so a slow request can never overwrite a newer choice;
     // changes made meanwhile are merged into one follow-up request.
     return {
         save(payload) {
-            if (inFlight) {
-                queued = { ...queued, ...payload };
-            } else {
-                send(payload);
-            }
+            queued = { ...queued, ...payload };
+            flush();
         },
         get busy() {
             return inFlight || queued !== null;
@@ -121,16 +147,14 @@ function initSearch(panel, items) {
 }
 
 function initPanel(panel) {
-    const typeButtons = [...panel.querySelectorAll('[data-review-type]')];
-    const iconicButton = panel.querySelector('[data-review-iconic]');
+    const themeButtons = [...panel.querySelectorAll('[data-review-theme]')];
     const notes = panel.querySelector('[data-review-notes]');
     const items = JSON.parse(panel.querySelector('[data-review-items]').textContent);
     const refreshList = initSearch(panel, items);
     let notesTimer = null;
 
-    const classification = () => ({
-        statue_type: typeButtons.find((button) => button.getAttribute('aria-pressed') === 'true')?.dataset.reviewType ?? null,
-        is_iconic: iconicButton.getAttribute('aria-pressed') === 'true',
+    const chosenThemes = () => ({
+        themes: themeButtons.filter((button) => button.getAttribute('aria-pressed') === 'true').map((button) => button.dataset.reviewTheme),
     });
 
     const saver = createSaver(panel, (result) => {
@@ -146,19 +170,12 @@ function initPanel(panel) {
         }
     });
 
-    typeButtons.forEach((button) =>
+    themeButtons.forEach((button) =>
         button.addEventListener('click', () => {
-            const wasPressed = button.getAttribute('aria-pressed') === 'true';
-            typeButtons.forEach((other) => setPressed(other, false));
-            setPressed(button, !wasPressed);
-            saver.save(classification());
+            setPressed(button, button.getAttribute('aria-pressed') !== 'true');
+            saver.save(chosenThemes());
         }),
     );
-
-    iconicButton.addEventListener('click', () => {
-        setPressed(iconicButton, iconicButton.getAttribute('aria-pressed') !== 'true');
-        saver.save(classification());
-    });
 
     const saveNotes = () => {
         clearTimeout(notesTimer);

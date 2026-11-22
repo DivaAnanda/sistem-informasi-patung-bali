@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Statue;
 use App\Models\StatueReview;
+use App\Models\Theme;
 use Illuminate\Support\Collection;
 
 /**
@@ -17,10 +18,34 @@ final class ReviewBoard
     /** @var Collection<int, StatueReview> keyed by source_no */
     private Collection $reviews;
 
+    /** @var Collection<int, Theme> */
+    private Collection $themes;
+
     public function __construct()
     {
-        $this->statues = Statue::query()->with(['regency', 'proposedType'])->orderBy('source_no')->get()->values();
+        $this->statues = Statue::query()->with('regency')->orderBy('source_no')->get()->values();
         $this->reviews = StatueReview::query()->get()->keyBy('source_no');
+        $this->themes = Theme::query()->orderBy('sort_order')->get();
+    }
+
+    /**
+     * Every theme in display order, for labelling proposals and choices without extra queries.
+     *
+     * @return Collection<int, Theme>
+     */
+    public function themes(): Collection
+    {
+        return $this->themes;
+    }
+
+    /**
+     * @param  list<string>|null  $slugs
+     */
+    public function themeLabel(?array $slugs): ?string
+    {
+        $names = $this->themes->whereIn('slug', $slugs ?? [])->map(fn (Theme $theme) => $theme->name);
+
+        return $names->isEmpty() ? null : $names->implode(' + ');
     }
 
     /**

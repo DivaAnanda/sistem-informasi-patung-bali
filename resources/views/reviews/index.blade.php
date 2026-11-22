@@ -1,19 +1,19 @@
 @php
     $percent = $progress['total'] > 0 ? round($progress['done'] / $progress['total'] * 100) : 0;
     $statusOptions = collect([
-        ['value' => 'belum', 'label' => __('Belum diperiksa'), 'count' => $progress['total'] - $progress['done']],
-        ['value' => 'sudah', 'label' => __('Sudah diperiksa'), 'count' => $progress['done']],
+        ['value' => 'belum', 'label' => __('Belum diklasifikasi'), 'count' => $progress['total'] - $progress['done']],
+        ['value' => 'sudah', 'label' => __('Sudah diklasifikasi'), 'count' => $progress['done']],
     ]);
 @endphp
 
-<x-layouts.app :title="__('Validasi jenis patung')">
+<x-layouts.app :title="__('Klasifikasi tema patung')">
     <div class="mx-auto max-w-6xl px-4 pt-10 sm:px-6">
         <header class="grid gap-8 lg:grid-cols-[1fr_22rem] lg:items-end">
             <div class="max-w-2xl">
-                <h1 class="font-display text-3xl font-semibold sm:text-4xl">{{ __('Validasi jenis patung') }}</h1>
+                <h1 class="font-display text-3xl font-semibold sm:text-4xl">{{ __('Klasifikasi tema patung') }}</h1>
                 <ol class="mt-4 list-decimal space-y-1 pl-5 text-stone-700 marker:text-stone-400">
                     <li>{{ __('Buka patung, lihat foto dan deskripsinya.') }}</li>
-                    <li>{{ __('Pilih salah satu jenis: Religius, Budaya, atau Dekoratif. Tambahkan Ikonik bila patung juga menjadi penanda wilayah.') }}</li>
+                    <li>{{ __('Pilih tema patung. Boleh lebih dari satu, misalnya Tokoh Babad sekaligus Monumen · Tokoh Sejarah.') }}</li>
                     <li>{{ __('Tulis catatan bila perlu. Semua tersimpan otomatis, lalu lanjut ke patung berikutnya.') }}</li>
                 </ol>
             </div>
@@ -25,14 +25,14 @@
                     <div class="h-full rounded-full bg-brand-600" style="width: {{ $percent }}%"></div>
                 </div>
                 @if ($firstUnreviewed)
-                    <x-button-link :href="route('statues.show', $firstUnreviewed)" class="mt-4 w-full">{{ __('Mulai dari yang belum diperiksa') }} →</x-button-link>
+                    <x-button-link :href="route('statues.show', $firstUnreviewed)" class="mt-4 w-full">{{ __('Mulai dari yang belum diklasifikasi') }} →</x-button-link>
                 @else
-                    <p class="mt-4 rounded-xl bg-green-50 px-3 py-2 text-center text-sm font-medium text-green-800">{{ __('Semua patung sudah diperiksa.') }}</p>
+                    <p class="mt-4 rounded-xl bg-green-50 px-3 py-2 text-center text-sm font-medium text-green-800">{{ __('Semua patung sudah diklasifikasi.') }}</p>
                 @endif
             </div>
         </header>
 
-        <form method="GET" action="{{ route('reviews.index') }}" role="search" class="mt-10 flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-4 lg:flex-row lg:items-end">
+        <form method="GET" action="{{ route('reviews.index') }}" role="search" class="mt-10 flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-4 xl:flex-row xl:items-end">
             <label class="flex min-w-0 flex-[2] flex-col gap-1.5">
                 <span class="text-xs font-semibold tracking-wide text-stone-600 uppercase">{{ __('Cari') }}</span>
                 <input type="search" name="q" value="{{ $filters['q'] }}" maxlength="100" placeholder="{{ __('Nama patung, kecamatan, atau desa') }}"
@@ -67,12 +67,12 @@
                             <span class="block font-semibold text-ink">{{ $statue->name }}</span>
                             <span class="block text-sm text-stone-600">{{ $statue->place() }}</span>
                         </span>
-                        <span class="text-sm text-stone-600 sm:w-44">{{ __('Usulan') }}: {{ $statue->proposalLabel() ?? '–' }}</span>
+                        <span class="text-sm text-stone-600 sm:w-44">{{ __('Usulan') }}: {{ $statue->proposalLabel($board->themes()) ?? '–' }}</span>
                         <span class="sm:w-44">
                             @if ($record?->isReviewed())
-                                <x-badge tone="brand">✓ {{ collect([$record->statue_type ? __(ucfirst($record->statue_type)) : null, $record->is_iconic ? __('Ikonik') : null])->filter()->implode(' + ') }}</x-badge>
+                                <x-badge tone="brand">✓ {{ $board->themeLabel($record->themes) }}</x-badge>
                             @else
-                                <x-badge>{{ __('Belum diperiksa') }}</x-badge>
+                                <x-badge>{{ __('Belum diklasifikasi') }}</x-badge>
                             @endif
                         </span>
                     </a>

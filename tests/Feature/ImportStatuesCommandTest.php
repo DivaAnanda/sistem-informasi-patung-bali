@@ -88,7 +88,7 @@ class ImportStatuesCommandTest extends TestCase
             $this->row(['no' => '3', 'junction_type' => 'Simpang aneh']),
             $this->row(['no' => '4', 'regency' => 'Sleman']),
             $this->row(['no' => '5', 'sources' => 'Tautan berbahaya [javascript:alert(1)]']),
-            $this->row(['no' => '6', 'statue_type' => 'Modern']),
+            $this->row(['no' => '6', 'themes' => 'Modern']),
         ]);
 
         $exitCode = Artisan::call('patung:import', ['file' => $path]);
@@ -99,7 +99,7 @@ class ImportStatuesCommandTest extends TestCase
         $this->assertStringContainsString('Baris 4: Jenis persimpangan "Simpang aneh" tidak dikenal', $output);
         $this->assertStringContainsString('Baris 5: Kabupaten "Sleman" tidak dikenal', $output);
         $this->assertStringContainsString('Baris 6: URL referensi "javascript:alert(1)" tidak valid', $output);
-        $this->assertStringContainsString('Baris 7: Jenis patung "Modern" tidak dikenal', $output);
+        $this->assertStringContainsString('Baris 7: Tema "Modern" tidak dikenal', $output);
         $this->assertDatabaseCount('statues', 0);
     }
 
@@ -181,30 +181,46 @@ class ImportStatuesCommandTest extends TestCase
             ->assertFailed();
     }
 
-    public function test_imports_the_team_proposal_and_photo_list(): void
+    public function test_imports_themes_the_team_proposal_and_photo_list(): void
     {
         $path = $this->csv([
-            $this->row(['no' => '1', 'proposed_type' => 'Budaya + Ikonik', 'photos' => '001-1.jpg; 001-2.jpg']),
-            $this->row(['no' => '2', 'name' => 'Patung Lain', 'proposed_type' => 'Ikonik', 'description_id' => '']),
+            $this->row([
+                'no' => '1',
+                'themes' => 'itihasa',
+                'proposed_themes' => 'Tokoh Babad (Folklor) + monumen-tokoh-sejarah',
+                'proposal_note' => 'Informan, rekaman menit 18:22.',
+                'photos' => '001-1.jpg; 001-2.jpg',
+            ]),
+            $this->row(['no' => '2', 'name' => 'Patung Lain', 'description_id' => '']),
         ]);
 
         $this->artisan('patung:import', ['file' => $path])->assertSuccessful();
 
-        $first = Statue::query()->with('proposedType')->firstWhere('source_no', 1);
-        $this->assertSame('budaya', $first->proposedType->slug);
-        $this->assertTrue($first->proposed_iconic);
+        $first = Statue::query()->with('themes')->firstWhere('source_no', 1);
+        $this->assertSame(['itihasa'], $first->themes->pluck('slug')->all());
+        $this->assertSame(['tokoh-babad', 'monumen-tokoh-sejarah'], $first->proposed_themes);
+        $this->assertSame('Informan, rekaman menit 18:22.', $first->proposal_note);
         $this->assertSame(['001-1.jpg', '001-2.jpg'], $first->photos);
 
-        $second = Statue::query()->firstWhere('source_no', 2);
-        $this->assertNull($second->proposed_type_id);
-        $this->assertTrue($second->proposed_iconic);
+        $second = Statue::query()->with('themes')->firstWhere('source_no', 2);
+        $this->assertTrue($second->themes->isEmpty());
+        $this->assertSame([], $second->proposed_themes);
+        $this->assertNull($second->proposal_note);
         $this->assertSame('', $second->description);
     }
 
-    public function test_rejects_two_main_types_and_unsafe_photo_names(): void
+    public function test_reimporting_replaces_the_themes(): void
+    {
+        $this->artisan('patung:import', ['file' => $this->csv([$this->row(['themes' => 'itihasa; religi'])])])->assertSuccessful();
+        $this->artisan('patung:import', ['file' => $this->csv([$this->row(['themes' => 'figur-kanda'])])])->assertSuccessful();
+
+        $this->assertSame(['figur-kanda'], Statue::query()->sole()->themes()->pluck('slug')->all());
+    }
+
+    public function test_rejects_unknown_proposed_themes_and_unsafe_photo_names(): void
     {
         $path = $this->csv([
-            $this->row(['no' => '1', 'proposed_type' => 'Religius + Budaya']),
+            $this->row(['no' => '1', 'proposed_themes' => 'Itihasa + Dekoratif']),
             $this->row(['no' => '2', 'photos' => '../rahasia.jpg']),
         ]);
 
@@ -212,8 +228,9 @@ class ImportStatuesCommandTest extends TestCase
         $output = Artisan::output();
 
         $this->assertSame(Command::FAILURE, $exitCode);
-        $this->assertStringContainsString('lebih dari satu jenis utama', $output);
+        $this->assertStringContainsString('Tema "Dekoratif" tidak dikenal', $output);
         $this->assertStringContainsString('../rahasia.jpg', $output);
+        $this->assertDatabaseCount('statues', 0);
     }
 
     public function test_bundled_dataset_imports_cleanly(): void
@@ -237,7 +254,6 @@ class ImportStatuesCommandTest extends TestCase
             'village' => 'Kuta',
             'latitude' => '-8.7216780',
             'longitude' => '115.1827293',
-            'statue_type' => '',
             'junction_type' => 'Pertigaan (3 arah)',
             'description_id' => 'Patung Bima melawan naga di tengah samudra.',
             'description_en' => '',

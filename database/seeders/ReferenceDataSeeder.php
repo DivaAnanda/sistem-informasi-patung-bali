@@ -4,7 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\JunctionType;
 use App\Models\Regency;
-use App\Models\StatueType;
+use App\Models\Theme;
 use Illuminate\Database\Seeder;
 
 class ReferenceDataSeeder extends Seeder
@@ -21,11 +21,59 @@ class ReferenceDataSeeder extends Seeder
         'tabanan' => 'Tabanan',
     ];
 
-    // Main types are mutually exclusive; "Ikonik" is a separate yes/no flag on top of them.
-    private const STATUE_TYPES = [
-        'religius' => ['id' => 'Religius', 'en' => 'Religious'],
-        'budaya' => ['id' => 'Budaya', 'en' => 'Cultural'],
-        'dekoratif' => ['id' => 'Dekoratif', 'en' => 'Decorative'],
+    // Themes of landmark statues, from the interview with Dewa Gede Purwita (20 November 2026).
+    private const THEMES = [
+        'itihasa' => [
+            'name' => ['id' => 'Itihasa', 'en' => 'Itihasa (Hindu epics)'],
+            'description' => [
+                'id' => 'Tokoh dari epos Hindu: Ramayana, Mahabharata, Adiparwa, Uttarakanda.',
+                'en' => 'Figures from the Hindu epics: the Ramayana, the Mahabharata, the Adiparwa, the Uttarakanda.',
+            ],
+        ],
+        'monumen-tokoh-sejarah' => [
+            'group' => 'monumen',
+            'name' => ['id' => 'Monumen · Tokoh Sejarah', 'en' => 'Monument · Historical figure'],
+            'description' => [
+                'id' => 'Memperingati momentum sejarah, berwujud figur manusia seperti pahlawan atau tokoh nyata.',
+                'en' => 'Commemorates a historical moment in the form of a human figure, such as a national hero.',
+            ],
+        ],
+        'monumen-tugu' => [
+            'group' => 'monumen',
+            'name' => ['id' => 'Monumen · Tugu', 'en' => 'Monument · Memorial column'],
+            'description' => [
+                'id' => 'Memperingati momentum sejarah, berwujud tugu, pilar, atau obelisk, bukan figur manusia.',
+                'en' => 'Commemorates a historical moment as a column, pillar, or obelisk rather than a human figure.',
+            ],
+        ],
+        'tokoh-babad' => [
+            'name' => ['id' => 'Tokoh Babad (Folklor)', 'en' => 'Babad figure (folklore)'],
+            'description' => [
+                'id' => 'Tokoh dari teks Babad atau cerita rakyat yang dipercaya keberadaannya turun-temurun.',
+                'en' => 'A figure from the Balinese Babad chronicles or folk tales, believed to have existed.',
+            ],
+        ],
+        'ikon-budaya-daerah' => [
+            'name' => ['id' => 'Ikon Budaya Daerah', 'en' => 'Regional cultural icon'],
+            'description' => [
+                'id' => 'Simbol, hewan, hasil bumi, atau aktivitas warga yang menjadi identitas khas suatu daerah.',
+                'en' => 'A symbol, animal, crop, or local activity that marks the identity of one area.',
+            ],
+        ],
+        'figur-kanda' => [
+            'name' => ['id' => 'Figur / Kanda', 'en' => 'Kanda figure'],
+            'description' => [
+                'id' => 'Figur dari lontar kelompok Kanda (pengetahuan praktis), kepercayaan lokal yang dikenal di seluruh Bali.',
+                'en' => 'A figure from the Kanda group of palm-leaf texts (practical knowledge), a belief shared across Bali.',
+            ],
+        ],
+        'religi' => [
+            'name' => ['id' => 'Religi', 'en' => 'Religious devotion'],
+            'description' => [
+                'id' => 'Figur keagamaan di luar epos Itihasa yang menjadi sarana pemujaan langsung.',
+                'en' => 'A religious figure outside the Itihasa epics that is worshipped directly.',
+            ],
+        ],
     ];
 
     private const JUNCTION_TYPES = [
@@ -43,20 +91,14 @@ class ReferenceDataSeeder extends Seeder
             Regency::query()->updateOrCreate(['slug' => $slug], ['name' => $name]);
         }
 
-        $this->seedTranslated(StatueType::class, self::STATUE_TYPES);
-        $this->seedTranslated(JunctionType::class, self::JUNCTION_TYPES);
-    }
-
-    /**
-     * @param  class-string<StatueType|JunctionType>  $model
-     * @param  array<string, array{id: string, en: string}>  $items
-     */
-    private function seedTranslated(string $model, array $items): void
-    {
         $order = 0;
+        foreach (self::THEMES as $slug => $theme) {
+            Theme::query()->updateOrCreate(['slug' => $slug], [...$theme, 'group' => $theme['group'] ?? null, 'sort_order' => ++$order]);
+        }
 
-        foreach ($items as $slug => $name) {
-            $model::query()->updateOrCreate(['slug' => $slug], ['name' => $name, 'sort_order' => ++$order]);
+        $order = 0;
+        foreach (self::JUNCTION_TYPES as $slug => $name) {
+            JunctionType::query()->updateOrCreate(['slug' => $slug], ['name' => $name, 'sort_order' => ++$order]);
         }
     }
 }

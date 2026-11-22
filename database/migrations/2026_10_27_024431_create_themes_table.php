@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('statue_types', function (Blueprint $table) {
+        Schema::create('themes', function (Blueprint $table) {
             $table->id();
             $table->string('slug')->unique();
             $table->json('name');
+            $table->json('description')->nullable();
+            $table->string('group')->nullable();
             $table->unsignedTinyInteger('sort_order')->default(0);
         });
     }
@@ -24,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('statue_types');
+        Schema::dropIfExists('themes');
     }
 };

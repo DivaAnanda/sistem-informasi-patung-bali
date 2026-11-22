@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\JunctionType;
 use App\Models\Regency;
 use App\Models\Statue;
-use App\Models\StatueType;
+use App\Models\Theme;
 use Database\Seeders\ReferenceDataSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -63,19 +63,44 @@ class StatueBrowsingTest extends TestCase
             ->assertDontSee('Patung Tepi Jalan');
     }
 
-    public function test_statue_type_filter_appears_only_once_statues_are_classified(): void
+    public function test_theme_filter_appears_only_once_statues_are_classified(): void
     {
-        $statue = $this->statue();
+        $statue = $this->statue(['name' => 'Patung Bertema']);
+        $this->statue(['name' => 'Patung Tanpa Tema']);
 
         $this->get('/id/patung')
-            ->assertDontSee('name="jenis"', false)
-            ->assertSee('sedang divalidasi bersama pakar');
+            ->assertDontSee('name="tema"', false)
+            ->assertSee('sedang diklasifikasi bersama informan');
 
-        $statue->update(['statue_type_id' => StatueType::query()->where('slug', 'budaya')->value('id')]);
+        $statue->themes()->attach(Theme::query()->where('slug', 'figur-kanda')->value('id'));
 
-        $this->get('/id/patung?jenis=budaya')
-            ->assertSee('name="jenis"', false)
-            ->assertSee($statue->name);
+        $this->get('/id/patung?tema=figur-kanda')
+            ->assertSee('name="tema"', false)
+            ->assertSee('Patung Bertema')
+            ->assertDontSee('Patung Tanpa Tema');
+    }
+
+    public function test_show_lists_every_theme_and_the_junction_guardian(): void
+    {
+        $crossroads = JunctionType::query()->where('slug', 'perempatan')->value('id');
+        $statue = $this->statue(['junction_type_id' => $crossroads, 'junction_arms' => 4]);
+        $statue->themes()->attach(Theme::query()->whereIn('slug', ['tokoh-babad', 'monumen-tokoh-sejarah'])->pluck('id'));
+
+        $this->get("/id/patung/{$statue->slug}")
+            ->assertSeeInOrder(['Monumen · Tokoh Sejarah', 'Tokoh Babad (Folklor)'])
+            ->assertSee('Sang Hyang Catur Bhuwana');
+        $this->get("/en/patung/{$statue->slug}")
+            ->assertSee('Babad figure (folklore)');
+    }
+
+    public function test_no_guardian_is_named_for_a_statue_beside_the_road(): void
+    {
+        $roadside = JunctionType::query()->where('slug', 'pinggir-jalan')->value('id');
+        $statue = $this->statue(['junction_type_id' => $roadside]);
+
+        $this->get("/id/patung/{$statue->slug}")
+            ->assertDontSee('Tutur Gong Besi')
+            ->assertSee('Menunggu klasifikasi informan');
     }
 
     public function test_index_ignores_malformed_filters_instead_of_redirecting(): void
@@ -125,7 +150,7 @@ class StatueBrowsingTest extends TestCase
             ->assertSee('Patung terdekat')
             ->assertSee('Patung Gatotkaca')
             ->assertSee('2,6 km dari sini')
-            ->assertSee('Menunggu validasi pakar')
+            ->assertSee('Menunggu klasifikasi informan')
             ->assertSee('destination=-8.721678,115.1827293', false);
     }
 
@@ -165,8 +190,8 @@ class StatueBrowsingTest extends TestCase
 
     public function test_about_page_is_available_in_both_languages(): void
     {
-        $this->get('/id/tentang')->assertOk()->assertSee('Tentang proyek');
-        $this->get('/en/tentang')->assertOk()->assertSee('About the project');
+        $this->get('/id/tentang')->assertOk()->assertSee('Tentang proyek')->assertSee('Figur / Kanda')->assertSee('Dewa Gede Purwita');
+        $this->get('/en/tentang')->assertOk()->assertSee('About the project')->assertSee('Itihasa (Hindu epics)');
     }
 
     public function test_distance_between_statues_uses_great_circle_distance(): void

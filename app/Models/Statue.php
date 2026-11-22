@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\StatuePhotos;
 use Database\Factories\StatueFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\RouteKey;
@@ -10,12 +11,14 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Collection;
 use Spatie\Translatable\Attributes\Translatable;
 use Spatie\Translatable\HasTranslations;
 
 #[Fillable([
     'source_no', 'slug', 'name', 'regency_id', 'district', 'village',
-    'latitude', 'longitude', 'statue_type_id', 'proposed_type_id', 'proposed_iconic',
+    'latitude', 'longitude', 'proposed_themes', 'proposal_note',
     'junction_type_id', 'junction_arms', 'description', 'sources', 'photos', 'photo_credit',
 ])]
 #[RouteKey('slug')]
@@ -34,7 +37,7 @@ class Statue extends Model
             'latitude' => 'float',
             'longitude' => 'float',
             'junction_arms' => 'integer',
-            'proposed_iconic' => 'boolean',
+            'proposed_themes' => 'array',
             'sources' => 'array',
             'photos' => 'array',
         ];
@@ -49,21 +52,13 @@ class Statue extends Model
     }
 
     /**
-     * @return BelongsTo<StatueType, $this>
-     */
-    public function statueType(): BelongsTo
-    {
-        return $this->belongsTo(StatueType::class);
-    }
-
-    /**
-     * The team's own classification, shown to the expert as a starting point.
+     * Themes confirmed by the informant; empty until the classification is final.
      *
-     * @return BelongsTo<StatueType, $this>
+     * @return BelongsToMany<Theme, $this>
      */
-    public function proposedType(): BelongsTo
+    public function themes(): BelongsToMany
     {
-        return $this->belongsTo(StatueType::class, 'proposed_type_id');
+        return $this->belongsToMany(Theme::class)->orderBy('sort_order');
     }
 
     /**
@@ -75,7 +70,7 @@ class Statue extends Model
     }
 
     /**
-     * @param  array{q?: ?string, kabupaten?: ?string, jenis?: ?string, persimpangan?: ?string}  $filters
+     * @param  array{q?: ?string, kabupaten?: ?string, tema?: ?string, persimpangan?: ?string}  $filters
      */
     #[Scope]
     protected function filter(Builder $query, array $filters): void
@@ -88,7 +83,7 @@ class Statue extends Model
                     ->orWhere('village', 'like', "%{$term}%")
             ))
             ->when($filters['kabupaten'] ?? null, fn (Builder $query, string $slug) => $query->whereRelation('regency', 'slug', $slug))
-            ->when($filters['jenis'] ?? null, fn (Builder $query, string $slug) => $query->whereRelation('statueType', 'slug', $slug))
+            ->when($filters['tema'] ?? null, fn (Builder $query, string $slug) => $query->whereRelation('themes', 'slug', $slug))
             ->when($filters['persimpangan'] ?? null, fn (Builder $query, string $slug) => $query->whereRelation('junctionType', 'slug', $slug));
     }
 
@@ -118,14 +113,44 @@ class Statue extends Model
         return filled($this->getTranslation('description', 'en', false));
     }
 
-    public function proposalLabel(): ?string
+    /**
+     * The team's suggested themes, shown to the informant as a starting point.
+     *
+     * @param  Collection<int, Theme>|null  $catalog  all themes, passed in by callers that list many statues
+     * @return Collection<int, Theme>
+     */
+    public function proposedThemes(?Collection $catalog = null): Collection
     {
-        $parts = array_filter([
-            $this->proposedType?->name,
-            $this->proposed_iconic ? __('Ikonik') : null,
-        ]);
+        $catalog ??= Theme::query()->orderBy('sort_order')->get();
 
-        return $parts === [] ? null : implode(' + ', $parts);
+        return $catalog->whereIn('slug', $this->proposed_themes ?? [])->values();
+    }
+
+    /**
+     * @param  Collection<int, Theme>|null  $catalog
+     */
+    public function proposalLabel(?Collection $catalog = null): ?string
+    {
+        $names = $this->proposedThemes($catalog)->map(fn (Theme $theme) => $theme->name);
+
+        return $names->isEmpty() ? null : $names->implode(' + ');
+    }
+
+    /**
+     * Who guards this kind of junction according to Tutur Gong Besi, as explained by the informant:
+     * Sang Hyang Catur Bhuwana at a crossroads, Sang Hyang Sapuh Jagat at a three-way junction.
+     * Offerings at the junction are for this guardian, not for the statue.
+     */
+    public function junctionGuardian(): ?string
+    {
+        $slug = $this->junctionType?->slug;
+        $arms = $this->junction_arms;
+
+        return match (true) {
+            $slug === 'perempatan', $slug === 'bundaran' && $arms === 4 => 'Sang Hyang Catur Bhuwana',
+            $slug === 'pertigaan', $slug === 'bundaran' && $arms === 3 => 'Sang Hyang Sapuh Jagat',
+            default => null,
+        };
     }
 
     /**
@@ -133,12 +158,46 @@ class Statue extends Model
      */
     public function photoUrls(): array
     {
-        return array_map(fn (string $file) => asset('images/patung/'.$file), $this->photos ?? []);
+        return array_map(StatuePhotos::url(...), $this->photos ?? []);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function thumbnailUrls(): array
+    {
+        return array_map(StatuePhotos::thumbnailUrl(...), $this->photos ?? []);
     }
 
     public function photoUrl(): ?string
     {
         return $this->photoUrls()[0] ?? null;
+    }
+
+    public function thumbnailUrl(): ?string
+    {
+        return isset($this->photos[0]) ? StatuePhotos::thumbnailUrl($this->photos[0]) : null;
+    }
+
+    /**
+     * Opens the nearest Street View panorama in Google Maps; needs no API key.
+     */
+    public function streetViewUrl(): string
+    {
+        return 'https://www.google.com/maps/@?api=1&map_action=pano&viewpoint='.$this->latitude.','.$this->longitude;
+    }
+
+    /**
+     * The interactive 360° panorama for an iframe, via the keyed (and free) Maps Embed API.
+     */
+    public function streetViewEmbedUrl(string $apiKey): string
+    {
+        return 'https://www.google.com/maps/embed/v1/streetview?'.http_build_query([
+            'key' => $apiKey,
+            'location' => $this->latitude.','.$this->longitude,
+            'fov' => 90,
+            'pitch' => 10,
+        ]);
     }
 
     public function googleMapsUrl(): string
@@ -163,7 +222,7 @@ class Statue extends Model
     }
 
     /**
-     * @return array{name: string, url: string, place: string, lat: float, lng: float}
+     * @return array{name: string, url: string, place: string, photo: ?string, lat: float, lng: float}
      */
     public function toMarker(): array
     {
@@ -171,6 +230,7 @@ class Statue extends Model
             'name' => $this->name,
             'url' => route('statues.show', $this),
             'place' => $this->place(),
+            'photo' => $this->thumbnailUrl(),
             'lat' => $this->latitude,
             'lng' => $this->longitude,
         ];

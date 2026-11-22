@@ -3,6 +3,7 @@
         ['route' => 'home', 'label' => __('Beranda'), 'active' => request()->routeIs('home')],
         ['route' => 'statues.index', 'label' => __('Jelajahi'), 'active' => request()->routeIs('statues.*')],
         ['route' => 'map', 'label' => __('Peta'), 'active' => request()->routeIs('map')],
+        ['route' => 'documentation', 'label' => __('Dokumentasi'), 'active' => request()->routeIs('documentation')],
         ['route' => 'about', 'label' => __('Tentang'), 'active' => request()->routeIs('about')],
     ];
 @endphp
@@ -61,9 +62,9 @@
     @if (\App\Support\Expert::active())
         <div class="border-t border-brand-200 bg-brand-50">
             <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2 text-sm sm:px-6">
-                <p class="font-medium text-brand-800">{{ __('Mode validasi pakar aktif') }}</p>
+                <p class="font-medium text-brand-800">{{ __('Mode klasifikasi informan aktif') }}</p>
                 <div class="flex items-center gap-4">
-                    <a href="{{ route('reviews.index') }}" class="font-semibold text-brand-800 underline underline-offset-4">{{ __('Daftar validasi') }}</a>
+                    <a href="{{ route('reviews.index') }}" class="font-semibold text-brand-800 underline underline-offset-4">{{ __('Daftar klasifikasi') }}</a>
                     <form method="POST" action="{{ route('expert.logout') }}">
                         @csrf
                         <button type="submit" class="text-brand-800 hover:underline">{{ __('Keluar') }}</button>

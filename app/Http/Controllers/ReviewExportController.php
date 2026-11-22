@@ -13,14 +13,14 @@ use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * The team's download of the expert's work. Reached only through a secret link the expert never sees.
+ * The team's download of the informant's work. Reached only through a secret link the informant never sees.
  */
 class ReviewExportController extends Controller
 {
     private const HEADERS = [
         'No', 'Nama Patung', 'Kabupaten/Kota', 'Kecamatan', 'Desa/Kelurahan',
-        'Usulan Tim: Jenis', 'Usulan Tim: Ikonik', 'Pakar: Jenis', 'Pakar: Ikonik',
-        'Sesuai Usulan?', 'Catatan Pakar', 'Status', 'Terakhir Diubah (WITA)', 'Peringatan', 'Halaman',
+        'Usulan Tim: Tema', 'Dasar Usulan', 'Informan: Tema', 'Sesuai Usulan?', 'Catatan Informan',
+        'Status', 'Terakhir Diubah (WITA)', 'Peringatan', 'Halaman',
     ];
 
     public function __invoke(string $token): StreamedResponse
@@ -29,7 +29,7 @@ class ReviewExportController extends Controller
 
         App::setLocale('id');
         $board = new ReviewBoard;
-        $filename = 'validasi-pakar-'.now('Asia/Makassar')->format('Y-m-d-His').'.xlsx';
+        $filename = 'klasifikasi-informan-'.now('Asia/Makassar')->format('Y-m-d-His').'.xlsx';
 
         return response()->streamDownload(function () use ($board) {
             $writer = new Writer;
@@ -37,7 +37,7 @@ class ReviewExportController extends Controller
             $writer->addRow(Row::fromValuesWithStyle(self::HEADERS, (new Style)->withFontBold(true)));
 
             foreach ($board->statues() as $statue) {
-                $writer->addRow(Row::fromValues($this->row($statue, $board->reviewFor($statue))));
+                $writer->addRow(Row::fromValues($this->row($statue, $board->reviewFor($statue), $board)));
             }
 
             $writer->close();
@@ -47,12 +47,12 @@ class ReviewExportController extends Controller
     /**
      * @return list<int|string>
      */
-    private function row(Statue $statue, ?StatueReview $review): array
+    private function row(Statue $statue, ?StatueReview $review, ReviewBoard $board): array
     {
         $reviewed = (bool) $review?->isReviewed();
-        $matches = $reviewed
-            && $review->statue_type === $statue->proposedType?->slug
-            && $review->is_iconic === $statue->proposed_iconic;
+        $proposed = $statue->proposed_themes ?? [];
+        $chosen = $review?->themes ?? [];
+        $matches = $reviewed && collect($chosen)->sort()->values()->all() === collect($proposed)->sort()->values()->all();
 
         return [
             $statue->source_no,
@@ -60,15 +60,14 @@ class ReviewExportController extends Controller
             $statue->regency->name,
             $statue->district,
             $statue->village ?? '',
-            $statue->proposedType?->name ?? '',
-            $statue->proposed_iconic ? 'Ya' : 'Tidak',
-            $review?->statue_type ? ucfirst($review->statue_type) : '',
-            $review === null ? '' : ($review->is_iconic ? 'Ya' : 'Tidak'),
+            $board->themeLabel($proposed) ?? '',
+            $statue->proposal_note ?? '',
+            $board->themeLabel($chosen) ?? '',
             $reviewed ? ($matches ? 'Ya' : 'Tidak') : '',
             $review?->notes ?? '',
-            $reviewed ? 'Sudah diperiksa' : 'Belum diperiksa',
+            $reviewed ? 'Sudah diklasifikasi' : 'Belum diklasifikasi',
             $review?->updated_at?->timezone('Asia/Makassar')->format('Y-m-d H:i') ?? '',
-            $review?->nameChangedFrom($statue) ? "Dinilai saat bernama \"{$review->statue_name}\"; cek apakah nomor ini dipakai untuk patung lain." : '',
+            $review?->nameChangedFrom($statue) ? "Diklasifikasi saat bernama \"{$review->statue_name}\"; cek apakah nomor ini dipakai untuk patung lain." : '',
             route('statues.show', ['locale' => 'id', 'statue' => $statue]),
         ];
     }

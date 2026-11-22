@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JunctionType;
 use App\Models\Regency;
 use App\Models\Statue;
-use App\Models\StatueType;
+use App\Models\Theme;
 use App\Services\ReviewBoard;
 use App\Support\Expert;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +19,7 @@ class StatueController extends Controller
 
     private const NEARBY_COUNT = 3;
 
-    private const FILTER_KEYS = ['q', 'kabupaten', 'jenis', 'persimpangan'];
+    private const FILTER_KEYS = ['q', 'kabupaten', 'tema', 'persimpangan'];
 
     private const MAX_FILTER_LENGTH = 100;
 
@@ -28,7 +28,7 @@ class StatueController extends Controller
         $filters = $this->filters($request);
 
         $statues = Statue::query()
-            ->with(['regency', 'statueType', 'junctionType'])
+            ->with(['regency', 'themes', 'junctionType'])
             ->filter($filters)
             ->orderBy('name')
             ->paginate(self::PER_PAGE)
@@ -38,15 +38,15 @@ class StatueController extends Controller
             return redirect($statues->url($statues->lastPage()));
         }
 
-        $statueTypes = StatueType::query()->withCount('statues')->orderBy('sort_order')->get();
+        $themes = Theme::query()->withCount('statues')->orderBy('sort_order')->get();
 
         return view('statues.index', [
             'statues' => $statues,
             'filters' => $filters,
             'totalCount' => Statue::query()->count(),
             'regencies' => Regency::query()->withCount('statues')->orderBy('name')->get(),
-            'statueTypes' => $statueTypes,
-            'isClassified' => $statueTypes->sum('statues_count') > 0,
+            'themes' => $themes,
+            'isClassified' => $themes->sum('statues_count') > 0,
             'junctionTypes' => JunctionType::query()->withCount('statues')->orderBy('sort_order')->get(),
         ]);
     }
@@ -54,7 +54,7 @@ class StatueController extends Controller
     /**
      * Filters come from hand-editable URLs, so malformed values are dropped or trimmed instead of rejected.
      *
-     * @return array{q?: string, kabupaten?: string, jenis?: string, persimpangan?: string}
+     * @return array{q?: string, kabupaten?: string, tema?: string, persimpangan?: string}
      */
     private function filters(Request $request): array
     {
@@ -66,11 +66,11 @@ class StatueController extends Controller
 
     public function show(Statue $statue): View
     {
-        $statue->load(['regency', 'statueType', 'junctionType', 'proposedType']);
+        $statue->load(['regency', 'themes', 'junctionType']);
 
         // The dataset is small (~100 rows), so distances are computed in PHP to stay database-agnostic.
         $nearby = Statue::query()
-            ->with(['regency', 'statueType', 'junctionType'])
+            ->with(['regency', 'themes', 'junctionType'])
             ->whereKeyNot($statue->getKey())
             ->get()
             ->map(fn (Statue $other) => ['statue' => $other, 'km' => $statue->distanceTo($other)])
@@ -95,6 +95,7 @@ class StatueController extends Controller
 
         return [
             'record' => $board->reviewFor($statue),
+            'themes' => $board->themes(),
             'progress' => $board->progress(),
             'previous' => $board->previous($statue),
             'next' => $board->next($statue),

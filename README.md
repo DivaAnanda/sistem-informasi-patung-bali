@@ -44,27 +44,40 @@ File tanpa baris data ditolak supaya situs tidak kosong karena salah file.
 | `regency` | Kabupaten/kota, misalnya `Badung` atau `Denpasar` |
 | `district`, `village` | Kecamatan dan desa/kelurahan |
 | `latitude`, `longitude` | Koordinat desimal |
-| `statue_type` | Jenis final setelah validasi: `Religius`, `Budaya`, `Dekoratif`, atau kosong |
-| `proposed_type` | Usulan tim untuk pakar: `Budaya`, `Ikonik`, `Budaya + Ikonik`, dan sejenisnya |
+| `themes` | Tema final dari informan, ditampilkan ke publik. Slug atau nama tema dipisah `;` atau `+`, misalnya `tokoh-babad; monumen-tokoh-sejarah`. Kosongkan sampai klasifikasi informan selesai. |
+| `proposed_themes` | Usulan tema tim yang ditunjukkan ke informan, format sama dengan `themes` |
+| `proposal_note` | Dasar usulan (maks. 300 karakter), misalnya menit rekaman wawancara |
 | `junction_type` | `Perempatan`, `Pertigaan`, `Bundaran`, `Simpang`, masing-masing boleh diberi `(N arah)`; `Bukan persimpangan (pinggir jalan)`, `Bukan persimpangan (di dalam kawasan)`, atau `Perlu verifikasi` |
 | `description_id`, `description_en` | Deskripsi (boleh kosong). Jika versi Inggris kosong, halaman Inggris menampilkan versi Indonesia beserta pemberitahuan. |
 | `sources` | `Judul [https://...]; Judul lain [https://...]` |
 | `photos` | Nama file di `public/images/patung/`, dipisah titik koma, misalnya `021-1.jpg;021-2.jpg` |
 
-## Validasi pakar
+## Foto dan Street View
 
-Pakar memilih jenis tiap patung langsung di website: satu dari Religius, Budaya, Dekoratif, ditambah
-Ikonik bila patung juga penanda wilayah, plus catatan bebas. Semua tersimpan otomatis.
+- Foto patung disimpan di `public/images/patung/` (lebar maksimal 1280 px). Setelah menambah foto, jalankan
+  `php artisan patung:thumbnails` untuk membuat versi kecil (640 px) di `public/images/patung/thumbs/`, yang dipakai
+  kartu, beranda, dan popup peta.
+- Bagian Street View membuka Google Maps di tab baru. Untuk menampilkan panorama 360° langsung di halaman, isi
+  `GOOGLE_MAPS_EMBED_KEY` dengan API key Google yang mengaktifkan Maps Embed API (gratis tanpa batas) dan dibatasi
+  ke domain website.
 
-- Pilihan pakar disimpan di database terpisah (koneksi `reviews`): Supabase di produksi lewat `REVIEWS_DB_URL`,
-  `database/reviews.sqlite` di komputer lokal. Kuncinya kolom `no`, jadi impor ulang CSV tidak menyentuh hasil validasi.
-- Mode pakar aktif lewat tautan rahasia `/id/validasi/masuk/{EXPERT_ACCESS_TOKEN}`. Tanpa itu, halaman validasi menjawab 404
+## Klasifikasi tema oleh informan
+
+Semua patung dipandang sebagai patung landmark. Informan budaya memilih tema tiap patung langsung di website, boleh
+lebih dari satu: Itihasa, Monumen · Tokoh Sejarah, Monumen · Tugu, Tokoh Babad (Folklor), Ikon Budaya Daerah,
+Figur/Kanda, Religi (daftarnya di `ReferenceDataSeeder`). Ada juga catatan bebas. Semua tersimpan otomatis, dan
+penyimpanan yang gagal karena koneksi dicoba ulang sendiri.
+
+- Pilihan informan disimpan di database terpisah (koneksi `reviews`): Supabase di produksi lewat `REVIEWS_DB_URL`,
+  `database/reviews.sqlite` di komputer lokal. Kuncinya kolom `no`, jadi impor ulang CSV tidak menyentuh hasil klasifikasi.
+- Mode informan aktif lewat tautan rahasia `/id/validasi/masuk/{EXPERT_ACCESS_TOKEN}`. Tanpa itu, halaman validasi menjawab 404
   dan pengunjung biasa tidak melihat panel maupun usulan tim.
 - Tim mengunduh hasil sebagai Excel dari `/ekspor-validasi/{EXPORT_ACCESS_TOKEN}`.
-- Usulan tim diisi dari kolom `proposed_type` di CSV, misalnya `Budaya + Ikonik`.
+- Usulan tim diisi dari kolom `proposed_themes` dan `proposal_note` di CSV. Setelah informan selesai, salin
+  tema dari ekspor ke kolom `themes` agar tampil di halaman publik.
 - Jangan memakai ulang nomor (`no`) untuk patung lain; patung pengganti diberi nomor baru. Ekspor memberi
-  peringatan bila nama patung pada suatu nomor berubah sejak dinilai.
-- Mengganti `EXPERT_ACCESS_TOKEN` langsung mengakhiri semua sesi pakar yang sedang aktif.
+  peringatan bila nama patung pada suatu nomor berubah sejak diklasifikasi.
+- Mengganti `EXPERT_ACCESS_TOKEN` langsung mengakhiri semua sesi informan yang sedang aktif.
 - Skema tabel produksi dibuat lewat migrasi Supabase yang sama isinya dengan
   `database/migrations/reviews/`. Untuk lokal: `php artisan migrate --database=reviews --path=database/migrations/reviews`.
 

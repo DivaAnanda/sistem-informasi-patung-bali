@@ -6,7 +6,7 @@
             __('Kabupaten/kota') => $statue->regency->name,
             __('Kecamatan') => $statue->district,
             __('Desa/kelurahan') => $statue->village ?? '–',
-            __('Jenis patung') => $statue->statueType?->name ?? __('Menunggu validasi pakar'),
+            __('Tema') => $statue->themes->isNotEmpty() ? $statue->themes->pluck('name')->implode(', ') : __('Menunggu klasifikasi informan'),
             __('Jenis persimpangan') => $statue->junctionLabel() ?? __('Belum diverifikasi'),
         ] as $term => $value)
             <div class="flex justify-between gap-4 px-5 py-3">
@@ -19,6 +19,12 @@
             <dd class="text-right font-mono text-xs leading-5">{{ number_format($statue->latitude, 6) }}, {{ number_format($statue->longitude, 6) }}</dd>
         </div>
     </dl>
+
+    @if ($guardian = $statue->junctionGuardian())
+        <p class="rounded-2xl bg-brand-50 px-5 py-4 text-sm leading-relaxed text-brand-800">
+            {{ __('Menurut Tutur Gong Besi, persimpangan seperti ini dijaga :guardian. Sesajen di sini ditujukan kepada penjaga ruang itu, bukan kepada patungnya.', ['guardian' => $guardian]) }}
+        </p>
+    @endif
 
     <x-statue-map id="statue-map" :markers="[$marker]" class="h-72" />
 

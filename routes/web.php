@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\AboutController;
+use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\ExpertSessionController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MapController;
@@ -28,7 +30,8 @@ Route::prefix('{locale}')
         Route::get('/patung', [StatueController::class, 'index'])->name('statues.index');
         Route::get('/patung/{statue}', [StatueController::class, 'show'])->name('statues.show');
         Route::get('/peta', MapController::class)->name('map');
-        Route::view('/tentang', 'pages.about')->name('about');
+        Route::get('/dokumentasi', DocumentationController::class)->name('documentation');
+        Route::get('/tentang', AboutController::class)->name('about');
 
         Route::get('/validasi/masuk/{token}', [ExpertSessionController::class, 'store'])
             ->middleware('throttle:10,1')

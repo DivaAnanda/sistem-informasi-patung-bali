@@ -17,6 +17,20 @@ function popupContent(marker) {
     const title = document.createElement('a');
     const meta = document.createElement('p');
 
+    wrapper.className = 'map-popup';
+    if (marker.photo) {
+        const photoLink = document.createElement('a');
+        const photo = document.createElement('img');
+        photoLink.href = marker.url;
+        photoLink.tabIndex = -1;
+        photo.src = marker.photo;
+        photo.alt = '';
+        photo.loading = 'lazy';
+        photo.className = 'map-popup-photo';
+        photoLink.append(photo);
+        wrapper.append(photoLink);
+    }
+
     title.href = marker.url;
     title.textContent = marker.name;
     title.className = 'map-popup-title';

@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    // Maps Embed API key (free, unlimited), restricted by HTTP referrer to the site's domains.
+    // Without it the Street View section links out to Google Maps instead of embedding the panorama.
+    'google_maps' => [
+        'embed_key' => env('GOOGLE_MAPS_EMBED_KEY'),
+    ],
+
 ];

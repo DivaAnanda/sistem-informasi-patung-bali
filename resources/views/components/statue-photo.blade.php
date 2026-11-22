@@ -1,8 +1,12 @@
 @props(['statue', 'decorative' => false])
 
-@if ($statue->photoUrl())
+@php
+    $thumbnail = $statue->thumbnailUrl();
+@endphp
+
+@if ($thumbnail)
     <img
-        src="{{ $statue->photoUrl() }}"
+        src="{{ $thumbnail }}"
         alt="{{ $decorative ? '' : $statue->name }}"
         loading="lazy"
         {{ $attributes->class('h-full w-full object-cover') }}

@@ -5,7 +5,32 @@
             <p class="mt-3 text-stone-700">{{ __('Cari berdasarkan nama atau lokasi, lalu saring menurut kabupaten dan bentuk persimpangan.') }}</p>
         </header>
 
-        <form method="GET" action="{{ route('statues.index') }}" role="search" class="mt-8 flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-4 lg:flex-row lg:items-end">
+        @php
+            $otherFilters = array_filter(\Illuminate\Support\Arr::except($filters, ['kabupaten']));
+            $chip = 'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600';
+        @endphp
+        <nav aria-label="{{ __('Saring menurut kabupaten') }}" class="mt-8 -mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+            <ul class="flex gap-2 sm:flex-wrap">
+                <li>
+                    <a href="{{ route('statues.index', $otherFilters) }}" @if (empty($filters['kabupaten'])) aria-current="true" @endif @class([$chip, 'border-ink bg-ink text-paper' => empty($filters['kabupaten']), 'border-stone-300 bg-white text-stone-700 hover:border-stone-500' => ! empty($filters['kabupaten'])])>
+                        {{ __('Semua') }} <span class="opacity-60">{{ $totalCount }}</span>
+                    </a>
+                </li>
+                @foreach ($regencies->where('statues_count', '>', 0) as $regency)
+                    @php($active = ($filters['kabupaten'] ?? null) === $regency->slug)
+                    <li>
+                        <a href="{{ route('statues.index', [...$otherFilters, 'kabupaten' => $regency->slug]) }}" @if ($active) aria-current="true" @endif @class([$chip, 'border-ink bg-ink text-paper' => $active, 'border-stone-300 bg-white text-stone-700 hover:border-stone-500' => ! $active])>
+                            {{ $regency->name }} <span class="opacity-60">{{ $regency->statues_count }}</span>
+                        </a>
+                    </li>
+                @endforeach
+            </ul>
+        </nav>
+
+        <form method="GET" action="{{ route('statues.index') }}" role="search" class="mt-4 flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-4 lg:flex-row lg:items-end">
+            @if (! empty($filters['kabupaten']))
+                <input type="hidden" name="kabupaten" value="{{ $filters['kabupaten'] }}">
+            @endif
             <label class="flex min-w-0 flex-[2] flex-col gap-1.5">
                 <span class="text-xs font-semibold tracking-wide text-stone-600 uppercase">{{ __('Cari') }}</span>
                 <input
@@ -18,21 +43,13 @@
                 >
             </label>
 
-            <x-filter-select
-                name="kabupaten"
-                :label="__('Kabupaten/kota')"
-                :placeholder="__('Semua kabupaten')"
-                :selected="$filters['kabupaten'] ?? null"
-                :options="$regencies->map(fn ($regency) => ['value' => $regency->slug, 'label' => $regency->name, 'count' => $regency->statues_count])"
-            />
-
             @if ($isClassified)
                 <x-filter-select
-                    name="jenis"
-                    :label="__('Jenis patung')"
-                    :placeholder="__('Semua jenis')"
-                    :selected="$filters['jenis'] ?? null"
-                    :options="$statueTypes->map(fn ($type) => ['value' => $type->slug, 'label' => $type->name, 'count' => $type->statues_count])"
+                    name="tema"
+                    :label="__('Tema')"
+                    :placeholder="__('Semua tema')"
+                    :selected="$filters['tema'] ?? null"
+                    :options="$themes->map(fn ($theme) => ['value' => $theme->slug, 'label' => $theme->name, 'count' => $theme->statues_count])"
                 />
             @endif
 
@@ -56,7 +73,7 @@
 
         @unless ($isClassified)
             <p class="mt-3 text-sm text-stone-600">
-                {{ __('Klasifikasi jenis patung (religius, budaya, dekoratif, ikonik) sedang divalidasi bersama pakar dan akan ditampilkan setelah final.') }}
+                {{ __('Tema tiap patung (Itihasa, Monumen, Tokoh Babad, Ikon Budaya Daerah, Figur/Kanda, Religi) sedang diklasifikasi bersama informan dan akan ditampilkan setelah final.') }}
             </p>
         @endunless
 

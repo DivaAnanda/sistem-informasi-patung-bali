@@ -20,9 +20,9 @@
             <h1 class="font-display text-3xl leading-tight font-semibold tracking-tight sm:text-5xl">{{ $statue->name }}</h1>
             <p class="mt-3 text-lg text-stone-700">{{ $statue->place() }}</p>
             <div class="mt-4 flex flex-wrap gap-2">
-                @if ($statue->statueType)
-                    <x-badge tone="brand">{{ $statue->statueType->name }}</x-badge>
-                @endif
+                @foreach ($statue->themes as $theme)
+                    <x-badge tone="brand">{{ $theme->name }}</x-badge>
+                @endforeach
                 @if ($junction = $statue->junctionLabel())
                     <x-badge>{{ $junction }}</x-badge>
                 @endif
@@ -88,6 +88,8 @@
                 </aside>
             @endif
         </div>
+
+        <x-street-view :statue="$statue" class="mt-20" />
 
         @if ($nearby->isNotEmpty())
             <section class="mt-20" aria-labelledby="nearby-heading">

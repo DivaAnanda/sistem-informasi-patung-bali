@@ -21,9 +21,8 @@ return new class extends Migration
             $table->string('village')->nullable();
             $table->decimal('latitude', 10, 7);
             $table->decimal('longitude', 10, 7);
-            $table->foreignId('statue_type_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('proposed_type_id')->nullable()->constrained('statue_types')->nullOnDelete();
-            $table->boolean('proposed_iconic')->default(false);
+            $table->json('proposed_themes')->nullable();
+            $table->string('proposal_note', 300)->nullable();
             $table->foreignId('junction_type_id')->nullable()->constrained()->nullOnDelete();
             $table->unsignedTinyInteger('junction_arms')->nullable();
             $table->json('description')->nullable();
@@ -32,6 +31,12 @@ return new class extends Migration
             $table->string('photo_credit')->nullable();
             $table->timestamps();
         });
+
+        Schema::create('statue_theme', function (Blueprint $table) {
+            $table->foreignId('statue_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('theme_id')->constrained()->cascadeOnDelete();
+            $table->primary(['statue_id', 'theme_id']);
+        });
     }
 
     /**
@@ -39,6 +44,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('statue_theme');
         Schema::dropIfExists('statues');
     }
 };

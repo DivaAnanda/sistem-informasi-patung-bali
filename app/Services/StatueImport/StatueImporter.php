@@ -5,7 +5,7 @@ namespace App\Services\StatueImport;
 use App\Models\JunctionType;
 use App\Models\Regency;
 use App\Models\Statue;
-use App\Models\StatueType;
+use App\Models\Theme;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -20,10 +20,8 @@ final class StatueImporter
 {
     public const COLUMNS = [
         'no', 'name', 'regency', 'district', 'village', 'latitude', 'longitude',
-        'statue_type', 'proposed_type', 'junction_type', 'description_id', 'description_en', 'sources', 'photos',
+        'themes', 'proposed_themes', 'proposal_note', 'junction_type', 'description_id', 'description_en', 'sources', 'photos',
     ];
-
-    private const ICONIC = 'ikonik';
 
     private const PHOTO_NAME = '/^[A-Za-z0-9_-]+\.(jpe?g|png|webp)$/';
 
@@ -138,20 +136,26 @@ final class StatueImporter
     }
 
     /**
-     * @return array{regencies: array<string, int>, statueTypes: array<string, int>, junctionTypes: array<string, int>}
+     * @return array{regencies: array<string, int>, themes: array<string, string>, junctionTypes: array<string, int>}
      */
     private function lookups(): array
     {
+        $themes = Theme::query()->get();
+
         return [
             'regencies' => Regency::query()->pluck('id', 'slug')->all(),
-            'statueTypes' => StatueType::query()->pluck('id', 'slug')->all(),
+            // Accept a theme's slug or its Indonesian name, e.g. "tokoh-babad" or "Tokoh Babad (Folklor)".
+            'themes' => $themes->mapWithKeys(fn (Theme $theme) => [
+                $theme->slug => $theme->slug,
+                Str::slug($theme->getTranslation('name', 'id')) => $theme->slug,
+            ])->all(),
             'junctionTypes' => JunctionType::query()->pluck('id', 'slug')->all(),
         ];
     }
 
     /**
      * @param  array<string, string>  $row
-     * @param  array{regencies: array<string, int>, statueTypes: array<string, int>, junctionTypes: array<string, int>}  $lookups
+     * @param  array{regencies: array<string, int>, themes: array<string, string>, junctionTypes: array<string, int>}  $lookups
      * @return array<string, mixed>
      */
     private function toRecord(array $row, array $lookups): array
@@ -159,7 +163,6 @@ final class StatueImporter
         $this->validateRow($row);
 
         $regencyKey = Str::slug(preg_replace('/^(kabupaten|kab\.?|kota)\s+/i', '', $row['regency']));
-        $statueTypeKey = Str::slug($row['statue_type']);
         $junction = JunctionLabel::parse($row['junction_type']);
 
         return [
@@ -171,40 +174,33 @@ final class StatueImporter
             'village' => $row['village'] !== '' ? $row['village'] : null,
             'latitude' => (float) $row['latitude'],
             'longitude' => (float) $row['longitude'],
-            'statue_type_id' => $statueTypeKey === '' ? null : ($lookups['statueTypes'][$statueTypeKey]
-                ?? throw new InvalidArgumentException("Jenis patung \"{$row['statue_type']}\" tidak dikenal.")),
             'junction_type_id' => $junction->typeSlug === null ? null : ($lookups['junctionTypes'][$junction->typeSlug]
                 ?? throw new InvalidArgumentException("Jenis persimpangan \"{$junction->typeSlug}\" belum ada di database.")),
             'junction_arms' => $junction->arms,
             'description' => array_filter(['id' => $row['description_id'], 'en' => $row['description_en']]),
             'sources' => $this->parseSources($row['sources']),
             'photos' => $this->parsePhotos($row['photos']),
-            ...$this->parseProposal($row['proposed_type'], $lookups['statueTypes']),
+            'theme_slugs' => $this->parseThemes($row['themes'], $lookups['themes']),
+            'proposed_themes' => $this->parseThemes($row['proposed_themes'], $lookups['themes']),
+            'proposal_note' => $row['proposal_note'] !== '' ? Str::limit($row['proposal_note'], 300, '') : null,
         ];
     }
 
     /**
-     * Accepts "Budaya", "Ikonik" or "Budaya + Ikonik": at most one main type, plus the Ikonik flag.
+     * Accepts themes separated by ";" or "+", by slug or by Indonesian name.
      *
-     * @param  array<string, int>  $statueTypes
-     * @return array{proposed_type_id: ?int, proposed_iconic: bool}
+     * @param  array<string, string>  $themes  slug or name slug => theme slug
+     * @return list<string>
      */
-    private function parseProposal(string $value, array $statueTypes): array
+    private function parseThemes(string $value, array $themes): array
     {
-        $keys = collect(explode('+', $value))->map(fn (string $part) => Str::slug($part))->filter();
-        $mainTypes = $keys->reject(fn (string $key) => $key === self::ICONIC)->values();
-
-        if ($mainTypes->count() > 1) {
-            throw new InvalidArgumentException("Usulan jenis \"{$value}\" memuat lebih dari satu jenis utama.");
-        }
-
-        $mainType = $mainTypes->first();
-
-        return [
-            'proposed_type_id' => $mainType === null ? null : ($statueTypes[$mainType]
-                ?? throw new InvalidArgumentException("Usulan jenis \"{$value}\" tidak dikenal.")),
-            'proposed_iconic' => $keys->contains(self::ICONIC),
-        ];
+        return collect(preg_split('/[;+]/', $value))
+            ->map(fn (string $part) => trim($part))
+            ->filter()
+            ->map(fn (string $part) => $themes[Str::slug($part)] ?? throw new InvalidArgumentException("Tema \"{$part}\" tidak dikenal."))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**
@@ -321,10 +317,14 @@ final class StatueImporter
             $slug = $slugs[$record['source_no']] ?? $this->uniqueSlug($record, $slugs);
             $slugs[$record['source_no']] = $slug;
 
-            Statue::query()->updateOrCreate(
+            $themeSlugs = $record['theme_slugs'];
+            unset($record['theme_slugs']);
+
+            $statue = Statue::query()->updateOrCreate(
                 ['source_no' => $record['source_no']],
                 [...$record, 'slug' => $slug],
             );
+            $statue->themes()->sync(Theme::query()->whereIn('slug', $themeSlugs)->pluck('id'));
         }
 
         return $removed;
