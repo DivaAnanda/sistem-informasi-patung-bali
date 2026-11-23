@@ -64,7 +64,7 @@ File tanpa baris data ditolak supaya situs tidak kosong karena salah file.
 ## Klasifikasi tema oleh informan
 
 Semua patung dipandang sebagai patung landmark. Informan budaya memilih tema tiap patung langsung di website, boleh
-lebih dari satu: Itihasa, Monumen · Tokoh Sejarah, Monumen · Tugu, Tokoh Babad (Folklor), Ikon Budaya Daerah,
+lebih dari satu: Itihasa, Monumen · Tokoh Sejarah, Monumen · Tugu, Tokoh Babad (Folklor), Ikon Daerah,
 Figur/Kanda, Religi (daftarnya di `ReferenceDataSeeder`). Ada juga catatan bebas. Semua tersimpan otomatis, dan
 penyimpanan yang gagal karena koneksi dicoba ulang sendiri.
 

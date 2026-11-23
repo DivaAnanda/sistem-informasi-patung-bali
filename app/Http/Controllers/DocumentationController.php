@@ -10,18 +10,24 @@ class DocumentationController extends Controller
     private const PUPUTAN_BADUNG_NO = 83;
 
     /**
-     * Full names in the order the team stands in the photo at Monumen Puputan Badung, left to right.
-     * The caption names them once this list is filled in.
+     * Group 1 of the Digital Cultural Heritage course. Listed as in the team's progress report, not in
+     * the order they stand in the photos.
      *
      * @var list<string>
      */
-    private const TEAM_LEFT_TO_RIGHT = [];
+    private const TEAM = [
+        'I Gede Surya Diva Ananda',
+        'I Ketut Tangkas Agus Sucita',
+        'Putu Krisna Udayana',
+        'I Kadek Dwika Pradnyana',
+        'I Gede Parama Sathiyam Yuda Yana',
+    ];
 
     public function __invoke(): View
     {
         return view('pages.documentation', [
             'puputan' => Statue::query()->firstWhere('source_no', self::PUPUTAN_BADUNG_NO),
-            'team' => self::TEAM_LEFT_TO_RIGHT,
+            'team' => self::TEAM,
         ]);
     }
 }

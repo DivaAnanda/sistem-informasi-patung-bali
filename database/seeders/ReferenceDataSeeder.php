@@ -53,8 +53,8 @@ class ReferenceDataSeeder extends Seeder
                 'en' => 'A figure from the Balinese Babad chronicles or folk tales, believed to have existed.',
             ],
         ],
-        'ikon-budaya-daerah' => [
-            'name' => ['id' => 'Ikon Budaya Daerah', 'en' => 'Regional cultural icon'],
+        'ikon-daerah' => [
+            'name' => ['id' => 'Ikon Daerah', 'en' => 'Regional icon'],
             'description' => [
                 'id' => 'Simbol, hewan, hasil bumi, atau aktivitas warga yang menjadi identitas khas suatu daerah.',
                 'en' => 'A symbol, animal, crop, or local activity that marks the identity of one area.',

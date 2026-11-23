@@ -25,6 +25,7 @@ class DocumentationTest extends TestCase
             ->assertSee('Kunjungan ke Monumen Puputan Badung')
             ->assertSee('Wawancara dengan informan budaya')
             ->assertSee('Dewa Gede Purwita, S.Pd., M.Sn.')
+            ->assertSee('Anggota tim: I Gede Surya Diva Ananda')
             ->assertSee('datetime="2026-11-20"', false)
             ->assertSee('demo-website-informan.mp4');
 

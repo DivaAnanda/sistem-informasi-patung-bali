@@ -7,7 +7,7 @@
     $themes = $review['themes']->keyBy('slug');
     $progress = $review['progress'];
     $percent = $progress['total'] > 0 ? round($progress['done'] / $progress['total'] * 100) : 0;
-    $layout = [['itihasa', 'tokoh-babad'], 'monumen', ['ikon-budaya-daerah', 'figur-kanda'], ['religi']];
+    $layout = [['itihasa', 'tokoh-babad'], 'monumen', ['ikon-daerah', 'figur-kanda'], ['religi']];
     $monumen = $review['themes']->where('group', 'monumen')->values();
     $choice = 'w-full rounded-xl border border-stone-300 bg-white px-2 py-2.5 text-sm font-semibold text-ink transition hover:border-stone-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-paper';
     $chip = 'rounded-full border border-stone-300 px-3 py-1 text-xs font-medium aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-paper';

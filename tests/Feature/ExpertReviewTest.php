@@ -155,7 +155,7 @@ class ExpertReviewTest extends TestCase
     {
         $statue = $this->statueProposedAs(['itihasa'], name: 'Patung Ekspor');
         StatueReview::query()->create(['source_no' => $statue->source_no, 'themes' => ['itihasa'], 'notes' => 'Setuju']);
-        $other = $this->statueProposedAs(['ikon-budaya-daerah'], name: 'Patung Beda');
+        $other = $this->statueProposedAs(['ikon-daerah'], name: 'Patung Beda');
         StatueReview::query()->create(['source_no' => $other->source_no, 'themes' => ['figur-kanda']]);
 
         $response = $this->get('/ekspor-validasi/token-ekspor-uji-panjang')->assertOk();

@@ -73,7 +73,7 @@
 
         @unless ($isClassified)
             <p class="mt-3 text-sm text-stone-600">
-                {{ __('Tema tiap patung (Itihasa, Monumen, Tokoh Babad, Ikon Budaya Daerah, Figur/Kanda, Religi) sedang diklasifikasi bersama informan dan akan ditampilkan setelah final.') }}
+                {{ __('Tema tiap patung (Itihasa, Monumen, Tokoh Babad, Ikon Daerah, Figur/Kanda, Religi) sedang diklasifikasi bersama informan dan akan ditampilkan setelah final.') }}
             </p>
         @endunless
 

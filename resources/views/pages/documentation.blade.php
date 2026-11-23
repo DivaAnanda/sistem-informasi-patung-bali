@@ -2,7 +2,7 @@
     $informant = 'Dewa Gede Purwita, S.Pd., M.Sn.';
     $groupCaption = __('Tim di depan Monumen Puputan Badung.');
     if ($team !== []) {
-        $groupCaption .= ' '.__('Dari kiri: :names.', ['names' => implode(', ', $team)]);
+        $groupCaption .= ' '.__('Anggota tim: :names.', ['names' => implode(', ', $team)]);
     }
 
     $visit = [
