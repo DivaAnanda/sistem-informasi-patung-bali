@@ -12,6 +12,10 @@ if (document.querySelector('[data-statue-map]')) {
     import('./map').then(({ initMaps }) => initMaps());
 }
 
+if (document.querySelector('[data-admin-map], [data-photo-upload]')) {
+    import('./admin').then(({ initAdmin }) => initAdmin());
+}
+
 if (document.querySelector('[data-review-panel]')) {
     import('./review').then(({ initReviewPanels }) => initReviewPanels());
 }

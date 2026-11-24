@@ -6,6 +6,12 @@ return [
     'expert_token' => env('EXPERT_ACCESS_TOKEN'),
     'export_token' => env('EXPORT_ACCESS_TOKEN'),
 
+    // One shared admin account. Only a bcrypt hash of the password is configured; empty disables the panel.
+    'admin' => [
+        'email' => env('ADMIN_EMAIL'),
+        'password_hash' => env('ADMIN_PASSWORD_HASH'),
+    ],
+
     // Photos uploaded through the admin panel go to a public Supabase Storage bucket through its S3 API.
     // The S3 key only reaches Storage, unlike the service_role key, which would bypass every database policy.
     'photo_storage' => [

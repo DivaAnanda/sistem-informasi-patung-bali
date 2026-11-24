@@ -78,6 +78,11 @@ class ReviewController extends Controller
         $review->reviewed_at = $review->isReviewed() ? ($review->reviewed_at ?? now()) : null;
         $review->save();
 
+        // The informant's choice is the public classification, so it goes live as soon as it is saved.
+        if (array_key_exists('themes', $data)) {
+            $statue->themes()->sync(Theme::query()->whereIn('slug', $data['themes'])->pluck('id'));
+        }
+
         return response()->json([
             'reviewed' => $review->isReviewed(),
             'saved_at' => $review->updated_at->timezone('Asia/Makassar')->format('H.i'),
