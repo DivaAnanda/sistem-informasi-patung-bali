@@ -25,9 +25,25 @@ final class StatuePhotos
         return self::thumbnailDirectory().'/'.$file;
     }
 
+    /**
+     * Photos added through the admin panel live in Supabase Storage under this prefix; plain file
+     * names are the original photos shipped in public/images/patung.
+     */
+    public const UPLOAD_PREFIX = 'uploads/';
+
+    public static function isUpload(string $file): bool
+    {
+        return str_starts_with($file, self::UPLOAD_PREFIX);
+    }
+
+    public static function thumbnailKey(string $key): string
+    {
+        return dirname($key).'/thumbs/'.basename($key);
+    }
+
     public static function url(string $file): string
     {
-        return asset('images/patung/'.$file);
+        return self::isUpload($file) ? self::storageUrl($file) : asset('images/patung/'.$file);
     }
 
     /**
@@ -35,7 +51,16 @@ final class StatuePhotos
      */
     public static function thumbnailUrl(string $file): string
     {
+        if (self::isUpload($file)) {
+            return self::storageUrl(self::thumbnailKey($file));
+        }
+
         return is_file(self::thumbnailPath($file)) ? asset('images/patung/thumbs/'.$file) : self::url($file);
+    }
+
+    private static function storageUrl(string $key): string
+    {
+        return rtrim((string) config('patung.photo_storage.public_url'), '/').'/'.$key;
     }
 
     public static function makeThumbnail(string $source, string $target): void

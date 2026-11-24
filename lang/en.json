@@ -163,5 +163,12 @@
     "Wawancara dengan informan budaya": "Interview with a cultural informant",
     "Terbit": "Published",
     "Draf": "Draft",
-    "Disembunyikan": "Hidden"
+    "Disembunyikan": "Hidden",
+    "Format foto harus JPG, PNG, atau WebP. Foto HEIC dari iPhone perlu diubah ke JPG dulu.": "Photos must be JPG, PNG, or WebP. Convert iPhone HEIC photos to JPG first.",
+    "Foto terlalu kecil. Sisi terpendek minimal :min piksel.": "The photo is too small. Its shorter side must be at least :min pixels.",
+    "Resolusi foto terlalu besar untuk diproses.": "The photo's resolution is too large to process.",
+    "Foto rusak atau tidak bisa dibaca.": "The photo is damaged or cannot be read.",
+    "Penyimpanan foto tidak bisa dihubungi. Coba lagi sebentar lagi.": "Photo storage cannot be reached. Try again in a moment.",
+    "Foto gagal disimpan (kode :status). Coba lagi atau hubungi pengelola.": "The photo could not be saved (code :status). Try again or contact the site manager.",
+    "Penyimpanan foto belum dikonfigurasi.": "Photo storage is not configured yet."
 }

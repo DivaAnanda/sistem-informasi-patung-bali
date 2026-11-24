@@ -10,7 +10,7 @@ COPY resources ./resources
 RUN mkdir -p public && npm run build
 
 FROM dunglas/frankenphp:1-php8.4-bookworm AS base
-RUN install-php-extensions intl zip pdo_pgsql
+RUN install-php-extensions intl zip pdo_pgsql gd exif
 WORKDIR /app
 
 FROM base AS vendor
@@ -31,6 +31,8 @@ ENV APP_ENV=production \
     LOG_CHANNEL=stderr \
     DB_CONNECTION=pgsql \
     DB_SSLMODE=require \
+    SUPABASE_S3_ENDPOINT=https://nfjqpgbtublbdggvczvu.storage.supabase.co/storage/v1/s3 \
+    SUPABASE_STORAGE_PUBLIC_URL=https://nfjqpgbtublbdggvczvu.supabase.co/storage/v1/object/public/patung \
     SESSION_DRIVER=cookie \
     SESSION_LIFETIME=43200 \
     SESSION_SECURE_COOKIE=true \
