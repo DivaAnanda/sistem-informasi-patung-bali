@@ -3,7 +3,7 @@
 Website informasi patung di persimpangan dan ruang publik Bali, dua bahasa (Indonesia dan Inggris).
 Proyek akhir mata kuliah Warisan Budaya Digital.
 
-Laravel 13 · Blade · Tailwind CSS 4 · Leaflet + OpenStreetMap · SQLite (bisa diganti MySQL lewat `.env`)
+Laravel 13 · Blade · Tailwind CSS 4 · Leaflet + OpenStreetMap · PostgreSQL (Supabase) di produksi, SQLite di lokal
 
 ## Menjalankan di komputer sendiri
 
@@ -23,7 +23,20 @@ Buka http://127.0.0.1:8000. Selama mengubah tampilan, jalankan `npm run dev` di 
 
 ## Alur data
 
-Data patung tidak diinput lewat website. Sumbernya file CSV `database/data/statues.csv`, yang dibuat dari Google Sheet tim.
+Sejak 25 November 2026, data produksi (patung, kabupaten, tema, jenis persimpangan) tersimpan di Supabase
+(PostgreSQL, region Singapura) bersama hasil klasifikasi informan. Website di Vercel berjalan di region `sin1` dan
+membaca langsung dari sana; image Docker tidak lagi membangun database. Koneksinya memakai `DB_URL`, atau
+`REVIEWS_DB_URL` bila `DB_URL` kosong. Akun aplikasi hanya punya hak baca, tambah, dan ubah (tidak bisa menghapus
+patung); tabel dilindungi RLS.
+
+Tiap patung punya `status`: `published` (tampil), `draft`, atau `hidden`. Semua halaman publik, hitungan, dan panel
+informan hanya melihat yang `published`; kode admin memakai `Statue::withUnpublished()`.
+
+`database/data/statues.csv` tetap dipakai untuk mengisi database lokal dan tes. Jangan menjalankan
+`patung:import` ke database produksi setelah ada patung yang ditambah lewat admin, karena importer menyamakan isi
+database dengan CSV.
+
+Untuk database lokal:
 
 1. Perbarui `database/data/statues.csv`.
 2. Jalankan `php artisan patung:import` (atau `php artisan migrate:fresh --seed` untuk mengisi ulang semuanya).

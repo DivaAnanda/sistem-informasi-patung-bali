@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StatueStatus;
 use App\Support\StatuePhotos;
 use Database\Factories\StatueFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -17,7 +18,7 @@ use Spatie\Translatable\Attributes\Translatable;
 use Spatie\Translatable\HasTranslations;
 
 #[Fillable([
-    'source_no', 'slug', 'name', 'regency_id', 'district', 'village',
+    'source_no', 'slug', 'status', 'name', 'regency_id', 'district', 'village',
     'latitude', 'longitude', 'proposed_themes', 'proposal_note',
     'junction_type_id', 'junction_arms', 'description', 'sources', 'photos', 'photo_credit',
 ])]
@@ -30,6 +31,30 @@ class Statue extends Model
 
     private const EARTH_RADIUS_KM = 6371;
 
+    private const PUBLISHED_SCOPE = 'published';
+
+    /** @var array<string, mixed> */
+    protected $attributes = ['status' => 'published'];
+
+    /**
+     * Public pages, counts, and the informant's panel only ever see published statues;
+     * the admin panel opts out through withUnpublished().
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope(self::PUBLISHED_SCOPE, fn (Builder $query) => $query->where(
+            $query->qualifyColumn('status'), StatueStatus::Published->value,
+        ));
+    }
+
+    /**
+     * @return Builder<static>
+     */
+    public static function withUnpublished(): Builder
+    {
+        return static::query()->withoutGlobalScope(self::PUBLISHED_SCOPE);
+    }
+
     protected function casts(): array
     {
         return [
@@ -40,6 +65,7 @@ class Statue extends Model
             'proposed_themes' => 'array',
             'sources' => 'array',
             'photos' => 'array',
+            'status' => StatueStatus::class,
         ];
     }
 
