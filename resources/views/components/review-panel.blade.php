@@ -106,7 +106,7 @@
 
     <div class="mt-4 space-y-3">
         @if ($review['nextUnreviewed'])
-            <x-button-link :href="route('statues.show', $review['nextUnreviewed'])" class="w-full">{{ __('Lanjut ke yang belum diklasifikasi') }} →</x-button-link>
+            <x-button-link :href="\App\Support\Expert::statueUrl($review['nextUnreviewed'])" class="w-full">{{ __('Lanjut ke yang belum diklasifikasi') }} →</x-button-link>
         @elseif ($progress['done'] === $progress['total'])
             <p class="rounded-xl bg-green-50 px-3 py-2 text-center text-sm font-medium text-green-800">{{ __('Semua patung sudah diklasifikasi.') }}</p>
         @else
@@ -116,7 +116,7 @@
         <nav aria-label="{{ __('Urutan patung') }}" class="grid grid-cols-2 gap-2">
             @foreach ([['statue' => $review['previous'], 'label' => '← '.__('Sebelumnya')], ['statue' => $review['next'], 'label' => __('Berikutnya').' →']] as $step)
                 @if ($step['statue'])
-                    <a href="{{ route('statues.show', $step['statue']) }}" class="inline-flex h-10 items-center justify-center rounded-full border border-stone-300 bg-white px-3 text-sm font-medium text-ink transition hover:border-stone-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">{{ $step['label'] }}</a>
+                    <a href="{{ \App\Support\Expert::statueUrl($step['statue']) }}" class="inline-flex h-10 items-center justify-center rounded-full border border-stone-300 bg-white px-3 text-sm font-medium text-ink transition hover:border-stone-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600">{{ $step['label'] }}</a>
                 @else
                     <span class="inline-flex h-10 items-center justify-center rounded-full border border-stone-200 px-3 text-sm text-stone-400" aria-disabled="true">{{ $step['label'] }}</span>
                 @endif

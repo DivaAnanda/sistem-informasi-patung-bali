@@ -1,0 +1,7 @@
+{
+  "hosting": {
+    "rewrites": [
+      { "source": "**", "run": { "serviceId": "patung-bali", "region": "asia-southeast1" } }
+    ]
+  }
+}

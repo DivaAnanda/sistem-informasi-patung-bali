@@ -1,0 +1,14 @@
+.gcloudignore
+.git
+.gitignore
+.env
+.env.*
+cloudrun.env.yaml
+.vercel
+node_modules
+vendor
+public/build
+public/hot
+tests
+storage/logs/*
+database/*.sqlite

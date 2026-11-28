@@ -1,7 +1,7 @@
 # Sistem Informasi Patung Bali
 
 Website informasi patung di persimpangan dan ruang publik Bali, dua bahasa (Indonesia dan Inggris).
-Proyek akhir mata kuliah Warisan Budaya Digital.
+Proyek akhir mata kuliah Warisan Budaya Digital. Situs: <https://patung-bali.web.app>
 
 Laravel 13 · Blade · Tailwind CSS 4 · Leaflet + OpenStreetMap · PostgreSQL (Supabase) di produksi, SQLite di lokal
 
@@ -24,8 +24,8 @@ Buka http://127.0.0.1:8000. Selama mengubah tampilan, jalankan `npm run dev` di 
 ## Alur data
 
 Sejak 25 November 2026, data produksi (patung, kabupaten, tema, jenis persimpangan) tersimpan di Supabase
-(PostgreSQL, region Singapura) bersama hasil klasifikasi informan. Website di Vercel berjalan di region `sin1` dan
-membaca langsung dari sana; image Docker tidak lagi membangun database. Koneksinya memakai `DB_URL`, atau
+(PostgreSQL, region Singapura) bersama hasil klasifikasi informan. Website berjalan di Google Cloud Run (region
+`asia-southeast1`, Singapura) di belakang Firebase Hosting dan membaca langsung dari sana; image Docker tidak lagi membangun database. Koneksinya memakai `DB_URL`, atau
 `REVIEWS_DB_URL` bila `DB_URL` kosong. Akun aplikasi hanya punya hak baca, tambah, dan ubah (tidak bisa menghapus
 patung); tabel dilindungi RLS.
 
@@ -102,6 +102,18 @@ penyimpanan yang gagal karena koneksi dicoba ulang sendiri.
 
 Teks antarmuka ditulis dalam Bahasa Indonesia di Blade (`__('...')`), terjemahan Inggrisnya di `lang/en.json`.
 Tes `TranslationCoverageTest` gagal kalau ada teks baru yang belum diterjemahkan.
+
+## Hosting dan cache
+
+Image Docker yang sama (`Dockerfile.vercel`) berjalan di Google Cloud Run (sebelumnya Vercel); panduannya ada di
+[docs/deploy-cloud-run.md](docs/deploy-cloud-run.md). Supaya server tidak terus terbangun:
+
+- File `public/build` di-cache selamanya, foto dan video seminggu di browser dan sebulan di CDN (lihat `Caddyfile`).
+- Halaman publik untuk pengunjung anonim dikirim tanpa cookie dengan `s-maxage=600`, sehingga CDN bisa menjawabnya
+  (`app/Http/Middleware/CachePublicPages.php`). Perubahan dari admin baru terlihat publik paling lambat 10 menit.
+- Halaman untuk informan dan admin tidak pernah di-cache. Tautan di mode validasi membawa `?validasi=1` agar CDN
+  selalu meneruskannya ke aplikasi.
+- `public/robots.txt` menolak crawler AI dan SEO yang mengunduh semua halaman dan foto berulang-ulang.
 
 ## Tes
 

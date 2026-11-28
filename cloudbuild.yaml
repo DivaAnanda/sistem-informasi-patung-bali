@@ -1,0 +1,6 @@
+# Builds the same image Vercel uses and stores it in Artifact Registry (repository "patung", Singapore).
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'Dockerfile.vercel', '-t', 'asia-southeast1-docker.pkg.dev/$PROJECT_ID/patung/web:latest', '.']
+images:
+  - asia-southeast1-docker.pkg.dev/$PROJECT_ID/patung/web:latest

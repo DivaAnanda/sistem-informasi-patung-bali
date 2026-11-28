@@ -25,7 +25,7 @@
                     <div class="h-full rounded-full bg-brand-600" style="width: {{ $percent }}%"></div>
                 </div>
                 @if ($firstUnreviewed)
-                    <x-button-link :href="route('statues.show', $firstUnreviewed)" class="mt-4 w-full">{{ __('Mulai dari yang belum diklasifikasi') }} →</x-button-link>
+                    <x-button-link :href="\App\Support\Expert::statueUrl($firstUnreviewed)" class="mt-4 w-full">{{ __('Mulai dari yang belum diklasifikasi') }} →</x-button-link>
                 @else
                     <p class="mt-4 rounded-xl bg-green-50 px-3 py-2 text-center text-sm font-medium text-green-800">{{ __('Semua patung sudah diklasifikasi.') }}</p>
                 @endif
@@ -61,7 +61,7 @@
             @forelse ($statues as $statue)
                 @php($record = $board->reviewFor($statue))
                 <li>
-                    <a href="{{ route('statues.show', $statue) }}" class="flex flex-col gap-2 px-5 py-4 transition hover:bg-stone-50 sm:flex-row sm:items-center sm:gap-6">
+                    <a href="{{ \App\Support\Expert::statueUrl($statue) }}" class="flex flex-col gap-2 px-5 py-4 transition hover:bg-stone-50 sm:flex-row sm:items-center sm:gap-6">
                         <span class="w-10 shrink-0 font-mono text-xs text-stone-500">#{{ $statue->source_no }}</span>
                         <span class="min-w-0 flex-1">
                             <span class="block font-semibold text-ink">{{ $statue->name }}</span>
